@@ -1,0 +1,7 @@
+{
+  "name": "MerchVision — Product Rack Recognition System",
+  "description": "Enterprise visual recognition and shelf audit interface for retail merchandisers connecting directly to your FastAPI backend service.",
+  "requestFramePermissions": ["camera"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
+

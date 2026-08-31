@@ -1,0 +1,79 @@
+/* ─── Google Font ─────────────────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
+@import "tailwindcss";
+
+/* ─── Keyframes ───────────────────────────────────────── */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0);   }
+}
+
+@keyframes fadeInScale {
+  from { opacity: 0; transform: scale(0.97) translateY(4px); }
+  to   { opacity: 1; transform: scale(1) translateY(0);      }
+}
+
+@keyframes modalFadeIn {
+  from { opacity: 0; transform: scale(0.96) translateY(-8px); }
+  to   { opacity: 1; transform: scale(1) translateY(0);        }
+}
+
+@keyframes scanline {
+  0%   { top: 0%;  opacity: 0.6; }
+  50%  { top: 96%; opacity: 1;   }
+  100% { top: 0%;  opacity: 0.6; }
+}
+
+@keyframes pulseSlow {
+  0%, 100% { opacity: 0.5; transform: scale(1);    }
+  50%       { opacity: 1;   transform: scale(1.04); }
+}
+
+@keyframes shimmer {
+  0%   { background-position: -400px 0; }
+  100% { background-position: 400px 0;  }
+}
+
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(20px); }
+  to   { opacity: 1; transform: translateX(0);     }
+}
+
+@keyframes slideInLeft {
+  from { opacity: 0; transform: translateX(-20px); }
+  to   { opacity: 1; transform: translateX(0);      }
+}
+
+@keyframes progressBar {
+  from { width: 0%; }
+  to   { width: 100%; }
+}
+
+/* ─── Animation Utilities ─────────────────────────────── */
+.animate-fadeIn       { animation: fadeIn       0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+.animate-fadeInScale  { animation: fadeInScale  0.3s  cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+.animate-modalFadeIn  { animation: modalFadeIn  0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+.animate-scanline     { animation: scanline     2.8s  ease-in-out infinite;                    }
+.animate-pulseSlow    { animation: pulseSlow    3s    ease-in-out infinite;                    }
+.animate-slideInRight { animation: slideInRight 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+.animate-slideInLeft  { animation: slideInLeft  0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+
+/* ─── Skeleton Shimmer ────────────────────────────────── */
+.skeleton {
+  background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+  background-size: 400px 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+}
+
+/* ─── Base Body ───────────────────────────────────────── */
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ─── Custom Scrollbar ────────────────────────────────── */
+::-webkit-scrollbar       { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: #f1f5f9; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
