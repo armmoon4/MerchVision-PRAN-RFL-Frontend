@@ -314,7 +314,7 @@ export const LiveRackScanner: React.FC<LiveRackScannerProps> = ({ onScanComplete
       const msg: string = err.message || '';
       if (msg.toLowerCase().includes('failed to fetch') || msg.toLowerCase().includes('networkerror') || msg.toLowerCase().includes('load failed')) {
         setApiUnavailable(true);
-        setErrorMessage('Cannot connect to the backend API. Make sure your FastAPI server is running on port 8000.');
+        setErrorMessage('Cannot connect to the backend SERVICE. Make sure your server is running');
       } else {
         setErrorMessage(msg || 'Upload failed. Please check the backend logs.');
       }
@@ -354,7 +354,7 @@ export const LiveRackScanner: React.FC<LiveRackScannerProps> = ({ onScanComplete
           <div className="flex-1 min-w-0">
             <p className="text-sm font-semibold text-amber-900">Backend API Unreachable</p>
             <p className="text-xs text-amber-700 mt-0.5 leading-relaxed">
-              Cannot reach <code className="font-mono bg-amber-100 px-1 rounded text-amber-800">http://localhost:8000</code>. Start your FastAPI backend or configure the API URL in the header settings. The app works in demo mode with sample images.
+              Cannot reach <code className="font-mono bg-amber-100 px-1 rounded text-amber-800">http://localhost:8000</code>. Start your backend SERVICE or configure the API URL in the header settings. The app works in demo mode with sample images.
             </p>
           </div>
           <button onClick={() => { setApiUnavailable(false); fetchMostRecentScan(); }}
