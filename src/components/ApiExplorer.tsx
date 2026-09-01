@@ -30,7 +30,7 @@ interface EndpointDef {
     name: string;
     type: string;
     required: boolean;
-    location: 'path' | 'query' | 'formData';
+    location: 'path' | 'query' | 'formData' | 'body';
     description: string;
     defaultVal?: string;
   }[];
@@ -54,10 +54,10 @@ const ENDPOINTS: EndpointDef[] = [
   },
   {
     id: 'upload',
-    name: 'Upload Rack Photo & Enqueue Recognition',
+    name: 'Upload Rack Photo (Multipart File) & Enqueue Recognition',
     method: 'POST',
     path: '/uploads',
-    description: 'Uploads a rack image and enqueues a background AI recognition job.',
+    description: 'Uploads a rack image file and enqueues a background AI recognition job.',
     section: '3.2. Rack Uploads & Analysis',
     statusSuccess: '202 Accepted',
     params: [
@@ -70,6 +70,23 @@ const ENDPOINTS: EndpointDef[] = [
     sampleJs: `const form = new FormData();\nform.append("file", fileInput.files[0]);\nform.append("shop_id", "SHOP-102");\nform.append("merchandiser_id", "MER-45");\n\nconst res = await fetch("http://localhost:8000/uploads", {\n  method: "POST",\n  body: form\n});\nconst data = await res.json();\nconsole.log(data);`
   },
   {
+    id: 'upload-url',
+    name: 'Analyze from Image URL (JSON Payload)',
+    method: 'POST',
+    path: '/uploads/url',
+    description: 'Accepts a publicly accessible rack image URL, downloads and validates the image, and enqueues a background AI recognition job.',
+    section: '3.2. Rack Uploads & Analysis',
+    statusSuccess: '202 Accepted',
+    params: [
+      { name: 'image_url', type: 'String', required: true, location: 'body', description: 'Public HTTP/HTTPS image URL (JPEG, PNG, WebP). Max 10MB.', defaultVal: 'https://images.unsplash.com/photo-1578916171728-46686eac8d58?w=800&auto=format&fit=crop&q=80' },
+      { name: 'shop_id', type: 'String', required: false, location: 'body', description: 'Unique shop identifier', defaultVal: 'SHOP-Gulshan-102' },
+      { name: 'merchandiser_id', type: 'String', required: false, location: 'body', description: 'Merchandiser identifier or name', defaultVal: 'MER-Rahim-45' }
+    ],
+    sampleCurl: `curl -X POST http://localhost:8000/uploads/url \\\n  -H "Content-Type: application/json" \\\n  -d '{\n    "image_url": "https://example.com/rack_shelf.jpg",\n    "shop_id": "SHOP-102",\n    "merchandiser_id": "MER-45"\n  }'`,
+    samplePython: `import requests\npayload = {\n    "image_url": "https://example.com/rack_shelf.jpg",\n    "shop_id": "SHOP-102",\n    "merchandiser_id": "MER-45"\n}\nres = requests.post("http://localhost:8000/uploads/url", json=payload)\nprint(res.json()) # {"upload_id": "...", "status": "PENDING"}`,
+    sampleJs: `const res = await fetch("http://localhost:8000/uploads/url", {\n  method: "POST",\n  headers: { "Content-Type": "application/json" },\n  body: JSON.stringify({\n    image_url: "https://example.com/rack_shelf.jpg",\n    shop_id: "SHOP-102",\n    merchandiser_id: "MER-45"\n  })\n});\nconst data = await res.json();\nconsole.log(data);`
+  },
+  {
     id: 'get-upload-result',
     name: 'Get Scan Status & Detected Products',
     method: 'GET',
@@ -78,7 +95,7 @@ const ENDPOINTS: EndpointDef[] = [
     section: '3.2. Rack Uploads & Analysis',
     statusSuccess: '200 OK',
     params: [
-      { name: 'upload_id', type: 'UUID String', required: true, location: 'path', description: 'UUID string returned from POST /uploads', defaultVal: 'f0051207-7e9f-4f5d-a8a1-8b1fed212103' }
+      { name: 'upload_id', type: 'UUID String', required: true, location: 'path', description: 'UUID string returned from POST /uploads or /uploads/url', defaultVal: 'f0051207-7e9f-4f5d-a8a1-8b1fed212103' }
     ],
     sampleCurl: `curl -X GET http://localhost:8000/uploads/f0051207-7e9f-4f5d-a8a1-8b1fed212103`,
     samplePython: `import requests\nres = requests.get("http://localhost:8000/uploads/f0051207-7e9f-4f5d-a8a1-8b1fed212103")\nprint(res.json())`,
@@ -142,6 +159,7 @@ export const ApiExplorer: React.FC = () => {
   // Live test parameters
   const [inputValues, setInputValues] = useState<Record<string, string>>({
     upload_id: 'f0051207-7e9f-4f5d-a8a1-8b1fed212103',
+    image_url: 'https://images.unsplash.com/photo-1578916171728-46686eac8d58?w=800&auto=format&fit=crop&q=80',
     shop_id: 'SHOP-Gulshan-102',
     merchandiser_id: 'MER-Rahim-45',
     status: 'COMPLETED',
@@ -191,6 +209,17 @@ export const ApiExplorer: React.FC = () => {
         res = await apiFetch(url);
       } else if (selectedEndpoint.method === 'DELETE') {
         res = await apiFetch(url, { method: 'DELETE' });
+      } else if (selectedEndpoint.id === 'upload-url') {
+        // POST /uploads/url test with JSON payload
+        res = await apiFetch('/uploads/url', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            image_url: inputValues.image_url || 'https://images.unsplash.com/photo-1578916171728-46686eac8d58?w=800&auto=format&fit=crop&q=80',
+            shop_id: inputValues.shop_id || 'SHOP-Gulshan-102',
+            merchandiser_id: inputValues.merchandiser_id || 'MER-Rahim-45'
+          })
+        });
       } else if (selectedEndpoint.method === 'POST') {
         // POST /uploads test with sample data payload
         res = await apiFetch('/uploads', {

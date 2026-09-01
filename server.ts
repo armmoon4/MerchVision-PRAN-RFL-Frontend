@@ -199,6 +199,58 @@ app.post('/uploads', uploadMiddleware.single('file'), async (req: Request, res: 
   }
 });
 
+// 3.2. Rack Uploads via URL: POST /uploads/url
+app.post('/uploads/url', async (req: Request, res: Response): Promise<void> => {
+  try {
+    const body = req.body || {};
+    const imageUrl = body.image_url ? String(body.image_url).trim() : '';
+    const shopId = body.shop_id ? String(body.shop_id).trim() : null;
+    const merchandiserId = body.merchandiser_id ? String(body.merchandiser_id).trim() : null;
+
+    if (!imageUrl) {
+      res.status(400).json({ detail: 'Field "image_url" is required in JSON body.' });
+      return;
+    }
+
+    if (!imageUrl.startsWith('http://') && !imageUrl.startsWith('https://')) {
+      res.status(400).json({ detail: 'Invalid URL scheme. Only HTTP and HTTPS image URLs are supported.' });
+      return;
+    }
+
+    const uploadId = uuidv4();
+    const now = new Date().toISOString();
+
+    const record: UploadRecordItem = {
+      upload_id: uploadId,
+      status: 'PENDING',
+      shop_id: shopId,
+      merchandiser_id: merchandiserId,
+      image_url: imageUrl,
+      detected_products: null,
+      error_message: null,
+      created_at: now,
+      updated_at: now
+    };
+
+    uploadsDatabase.set(uploadId, record);
+
+    // Trigger async background analysis
+    setTimeout(() => {
+      processRackRecognitionJob(uploadId, Buffer.from(''), 'image/jpeg', shopId);
+    }, 100);
+
+    // Return 202 Accepted immediately
+    res.status(202).json({
+      upload_id: uploadId,
+      status: 'PENDING',
+      message: 'Image URL received. Processing started.'
+    });
+  } catch (error: any) {
+    console.error('Error processing POST /uploads/url:', error);
+    res.status(500).json({ detail: error.message || 'Internal Server Error saving image from URL' });
+  }
+});
+
 // 3.2. GET /uploads/summary & /analysis/summary (Must be declared before /uploads/:upload_id)
 app.get(['/uploads/summary', '/analysis/summary'], (_req: Request, res: Response) => {
   const allItems = Array.from(uploadsDatabase.values());

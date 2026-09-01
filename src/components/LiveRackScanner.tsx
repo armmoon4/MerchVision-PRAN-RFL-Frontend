@@ -21,7 +21,11 @@ import {
   WifiOff,
   Clock3,
   Package,
-  Zap
+  Zap,
+  Globe,
+  Link2,
+  ExternalLink,
+  Check
 } from 'lucide-react';
 import { UploadRecord } from '../types';
 import { RackDetectionViewer } from './RackDetectionViewer';
@@ -35,8 +39,29 @@ interface LiveRackScannerProps {
   onScanCompleted?: (record: UploadRecord) => void;
 }
 
-type IngestionTab = 'upload' | 'samples';
+type IngestionTab = 'upload' | 'url' | 'samples';
 type ViewMode = 'intake' | 'analyzing' | 'results';
+
+const SAMPLE_URL_PRESETS = [
+  {
+    name: 'PRAN Juice Rack',
+    url: 'https://images.unsplash.com/photo-1578916171728-46686eac8d58?w=800&auto=format&fit=crop&q=80',
+    shop_id: 'SHOP-Gulshan-102',
+    merchandiser_id: 'MER-Rahim-45'
+  },
+  {
+    name: 'Beverage Coolers',
+    url: 'https://images.unsplash.com/photo-1527661591475-527312dd65f5?w=800&auto=format&fit=crop&q=80',
+    shop_id: 'SHOP-Dhanmondi-204',
+    merchandiser_id: 'MER-Tanvir-12'
+  },
+  {
+    name: 'Retail Display Shelf',
+    url: 'https://images.unsplash.com/photo-1604719312566-8912e9227c6a?w=800&auto=format&fit=crop&q=80',
+    shop_id: 'SHOP-Uttara-305',
+    merchandiser_id: 'MER-Nasim-88'
+  }
+];
 
 export const LiveRackScanner: React.FC<LiveRackScannerProps> = ({ onScanCompleted }) => {
   const [viewMode, setViewMode] = useState<ViewMode>('intake');
@@ -44,6 +69,9 @@ export const LiveRackScanner: React.FC<LiveRackScannerProps> = ({ onScanComplete
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [base64Data, setBase64Data] = useState<string | null>(null);
+  const [inputImageUrl, setInputImageUrl] = useState<string>('');
+  const [isUrlSource, setIsUrlSource] = useState<boolean>(false);
+  const [isUrlLoading, setIsUrlLoading] = useState<boolean>(false);
   const [shopId, setShopId] = useState<string>('SHOP-Gulshan-102');
   const [merchandiserId, setMerchandiserId] = useState<string>('MER-Rahim-45');
   const [isDragging, setIsDragging] = useState(false);
@@ -90,7 +118,11 @@ export const LiveRackScanner: React.FC<LiveRackScannerProps> = ({ onScanComplete
       if (selected.size > 10 * 1024 * 1024) { setErrorMessage('File size exceeds 10MB limit.'); return; }
       setFile(selected);
       setPreviewUrl(URL.createObjectURL(selected));
-      setBase64Data(null); setErrorMessage(null); setScanResult(null); setUploadStatus('IDLE');
+      setBase64Data(null);
+      setIsUrlSource(false);
+      setErrorMessage(null);
+      setScanResult(null);
+      setUploadStatus('IDLE');
     }
   };
 
@@ -104,20 +136,76 @@ export const LiveRackScanner: React.FC<LiveRackScannerProps> = ({ onScanComplete
       if (selected.size > 10 * 1024 * 1024) { setErrorMessage('File size exceeds 10MB limit.'); return; }
       setFile(selected);
       setPreviewUrl(URL.createObjectURL(selected));
-      setBase64Data(null); setErrorMessage(null); setScanResult(null); setUploadStatus('IDLE');
+      setBase64Data(null);
+      setIsUrlSource(false);
+      setErrorMessage(null);
+      setScanResult(null);
+      setUploadStatus('IDLE');
     }
   };
 
   const handleCameraCapture = (capturedBase64: string) => {
-    setBase64Data(capturedBase64); setPreviewUrl(capturedBase64);
-    setFile(null); setErrorMessage(null); setScanResult(null); setUploadStatus('IDLE');
+    setBase64Data(capturedBase64);
+    setPreviewUrl(capturedBase64);
+    setFile(null);
+    setIsUrlSource(false);
+    setErrorMessage(null);
+    setScanResult(null);
+    setUploadStatus('IDLE');
     setIsCameraOpen(false);
   };
 
   const handleSelectSample = (sample: typeof SAMPLE_RACKS[0]) => {
-    setPreviewUrl(sample.imageUrl); setBase64Data(null); setFile(null);
-    setShopId(sample.shop_id); setMerchandiserId(sample.merchandiser_id);
-    setErrorMessage(null); setScanResult(null); setUploadStatus('IDLE');
+    setPreviewUrl(sample.imageUrl);
+    setBase64Data(null);
+    setFile(null);
+    setIsUrlSource(true);
+    setInputImageUrl(sample.imageUrl);
+    setShopId(sample.shop_id);
+    setMerchandiserId(sample.merchandiser_id);
+    setErrorMessage(null);
+    setScanResult(null);
+    setUploadStatus('IDLE');
+  };
+
+  const handleLoadImageUrl = (urlToLoad?: string) => {
+    const targetUrl = (urlToLoad || inputImageUrl || '').trim();
+    if (!targetUrl) {
+      setErrorMessage('Please enter a valid Image URL.');
+      return;
+    }
+    if (!targetUrl.startsWith('http://') && !targetUrl.startsWith('https://')) {
+      setErrorMessage('Image URL must start with http:// or https://');
+      return;
+    }
+
+    setIsUrlLoading(true);
+    setErrorMessage(null);
+
+    // Preload image in browser to verify accessibility & dimensions
+    const img = new Image();
+    img.onload = () => {
+      setIsUrlLoading(false);
+      setPreviewUrl(targetUrl);
+      setInputImageUrl(targetUrl);
+      setIsUrlSource(true);
+      setFile(null);
+      setBase64Data(null);
+      setErrorMessage(null);
+      setScanResult(null);
+      setUploadStatus('IDLE');
+    };
+    img.onerror = () => {
+      setIsUrlLoading(false);
+      // Still allow staging if user wants backend to fetch directly
+      setPreviewUrl(targetUrl);
+      setInputImageUrl(targetUrl);
+      setIsUrlSource(true);
+      setFile(null);
+      setBase64Data(null);
+      setErrorMessage('Note: Image preview could not be loaded in browser (possible CORS restriction), but backend will attempt direct fetch.');
+    };
+    img.src = targetUrl;
   };
 
   const pollForResults = (uploadId: string) => {
@@ -152,7 +240,10 @@ export const LiveRackScanner: React.FC<LiveRackScannerProps> = ({ onScanComplete
   };
 
   const handleStartAnalysis = async () => {
-    if (!file && !base64Data && !previewUrl) { setErrorMessage('Please select or upload an image first.'); return; }
+    if (!file && !base64Data && !previewUrl && !inputImageUrl) {
+      setErrorMessage('Please select or provide an image first.');
+      return;
+    }
     try {
       setIsUploading(true); setErrorMessage(null); setUploadStatus('UPLOADING');
       setScanResult(null); setViewMode('analyzing');
@@ -167,14 +258,30 @@ export const LiveRackScanner: React.FC<LiveRackScannerProps> = ({ onScanComplete
           if (body.message) return body.message;
           if (body.error) return body.error;
         } catch { /* ignore */ }
-        if (res.status === 500) return 'Server error (500) — check your Gemini API key is set on the backend.';
-        if (res.status === 422) return 'Invalid request (422) — the backend rejected the payload.';
+        if (res.status === 400) return 'Bad Request (400) — Invalid image format, unreachable URL, or file exceeds 10MB.';
+        if (res.status === 500) return 'Server error (500) — check your backend Gemini API configuration.';
+        if (res.status === 422) return 'Invalid request (422) — backend validation error.';
         if (res.status === 401) return 'Unauthorized (401) — Gemini API key may be missing or invalid.';
         if (res.status === 503) return 'Service unavailable (503) — backend or AI service is down.';
         return `Request failed with HTTP ${res.status}.`;
       };
 
-      if (file) {
+      if (isUrlSource || (ingestionTab === 'url' && (inputImageUrl || previewUrl))) {
+        // Use the dedicated POST /uploads/url endpoint
+        const targetUrl = (inputImageUrl || previewUrl || '').trim();
+        const res = await apiFetch('/uploads/url', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            image_url: targetUrl,
+            shop_id: shopId || undefined,
+            merchandiser_id: merchandiserId || undefined
+          })
+        });
+        if (!res.ok) throw new Error(await parseError(res));
+        const resData = await res.json();
+        uploadId = resData.upload_id;
+      } else if (file) {
         const formData = new FormData();
         formData.append('file', file);
         if (shopId) formData.append('shop_id', shopId);
@@ -184,14 +291,17 @@ export const LiveRackScanner: React.FC<LiveRackScannerProps> = ({ onScanComplete
         uploadId = (await res.json()).upload_id;
       } else if (base64Data) {
         const res = await apiFetch('/uploads', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ image_base64: base64Data, shop_id: shopId, merchandiser_id: merchandiserId })
         });
         if (!res.ok) throw new Error(await parseError(res));
         uploadId = (await res.json()).upload_id;
       } else if (previewUrl) {
-        const res = await apiFetch('/uploads', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
+        // Fallback for sample images with remote URL
+        const res = await apiFetch('/uploads/url', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ image_url: previewUrl, shop_id: shopId, merchandiser_id: merchandiserId })
         });
         if (!res.ok) throw new Error(await parseError(res));
@@ -212,9 +322,17 @@ export const LiveRackScanner: React.FC<LiveRackScannerProps> = ({ onScanComplete
   };
 
   const handleReset = () => {
-    setFile(null); setPreviewUrl(null); setBase64Data(null);
-    setScanResult(null); setErrorMessage(null); setUploadStatus('IDLE');
-    setCurrentUploadId(null); setViewMode('intake');
+    setFile(null);
+    setPreviewUrl(null);
+    setBase64Data(null);
+    setInputImageUrl('');
+    setIsUrlSource(false);
+    setIsUrlLoading(false);
+    setScanResult(null);
+    setErrorMessage(null);
+    setUploadStatus('IDLE');
+    setCurrentUploadId(null);
+    setViewMode('intake');
   };
 
   const activeDisplayRecord = scanResult || recentScan;
@@ -324,20 +442,27 @@ export const LiveRackScanner: React.FC<LiveRackScannerProps> = ({ onScanComplete
                 {/* Source Toggle (visible when no preview) */}
                 {!previewUrl && (
                   <div className="px-4 pt-3">
-                    <div className="grid grid-cols-2 gap-1 p-1 bg-slate-100 rounded-xl border border-slate-200">
-                      <button onClick={() => setIngestionTab('upload')}
+                    <div className="grid grid-cols-3 gap-1 p-1 bg-slate-100 rounded-xl border border-slate-200">
+                      <button onClick={() => { setIngestionTab('upload'); setErrorMessage(null); }}
                         className={`py-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition ${
                           ingestionTab === 'upload' ? 'bg-white text-slate-900 shadow-sm border border-slate-200' : 'text-slate-500 hover:text-slate-700'
                         }`}>
                         <UploadCloud className="w-3.5 h-3.5 text-blue-500" />
-                        Upload File
+                        <span>Upload File</span>
                       </button>
-                      <button onClick={() => setIngestionTab('samples')}
+                      <button onClick={() => { setIngestionTab('url'); setErrorMessage(null); }}
+                        className={`py-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition ${
+                          ingestionTab === 'url' ? 'bg-white text-slate-900 shadow-sm border border-slate-200' : 'text-slate-500 hover:text-slate-700'
+                        }`}>
+                        <Globe className="w-3.5 h-3.5 text-teal-600" />
+                        <span>Image URL</span>
+                      </button>
+                      <button onClick={() => { setIngestionTab('samples'); setErrorMessage(null); }}
                         className={`py-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition ${
                           ingestionTab === 'samples' ? 'bg-white text-slate-900 shadow-sm border border-slate-200' : 'text-slate-500 hover:text-slate-700'
                         }`}>
                         <FlaskConical className="w-3.5 h-3.5 text-violet-500" />
-                        Sample Images
+                        <span>Samples</span>
                       </button>
                     </div>
                   </div>
@@ -352,36 +477,139 @@ export const LiveRackScanner: React.FC<LiveRackScannerProps> = ({ onScanComplete
                     <div className="relative rounded-xl overflow-hidden bg-slate-900 group" style={{ aspectRatio: '4/3' }}>
                       <img src={previewUrl} alt="Staged Image" className="w-full h-full object-cover opacity-95" />
 
-                      {/* Success badge */}
-                      <div className="absolute top-2 left-2">
+                      {/* Success / Source badge */}
+                      <div className="absolute top-2 left-2 flex items-center gap-1.5">
                         <span className="flex items-center gap-1 px-2.5 py-1 bg-emerald-500 text-white text-xs font-bold rounded-lg shadow-lg shadow-emerald-500/30">
                           <CheckCircle2 className="w-3 h-3" />
                           Ready for Analysis
                         </span>
+                        {isUrlSource && (
+                          <span className="flex items-center gap-1 px-2 py-1 bg-teal-600/90 text-white text-[11px] font-semibold rounded-lg shadow-sm backdrop-blur-xs">
+                            <Globe className="w-3 h-3" />
+                            Remote URL
+                          </span>
+                        )}
                       </div>
 
-                      {/* File info badge */}
+                      {/* File / URL info badge */}
                       <div className="absolute bottom-2 left-2 right-2">
                         <div className="flex items-center justify-between px-3 py-1.5 bg-black/60 backdrop-blur-sm rounded-lg border border-white/10">
-                          <span className="text-white/90 text-xs font-medium truncate max-w-[200px]">
-                            {file ? file.name : base64Data ? 'Camera Snapshot' : 'Sample Image'}
+                          <span className="text-white/90 text-xs font-medium truncate max-w-[240px]">
+                            {file ? file.name : isUrlSource ? (inputImageUrl || previewUrl) : base64Data ? 'Camera Snapshot' : 'Sample Image'}
                           </span>
                           <span className="text-white/60 text-xs font-mono shrink-0 ml-2">
-                            {file ? `${(file.size / 1024).toFixed(0)} KB` : 'Loaded'}
+                            {file ? `${(file.size / 1024).toFixed(0)} KB` : isUrlSource ? 'HTTP/HTTPS' : 'Loaded'}
                           </span>
                         </div>
                       </div>
 
                       {/* Hover overlay */}
-                      <div className="absolute inset-0 bg-slate-900/50 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center gap-3">
-                        <button onClick={() => fileInputRef.current?.click()}
-                          className="flex items-center gap-2 px-3.5 py-2 bg-white text-slate-800 rounded-xl text-sm font-semibold shadow-xl hover:bg-slate-50 transition">
-                          <UploadCloud className="w-4 h-4 text-blue-500" /> Change Photo
+                      <div className="absolute inset-0 bg-slate-900/50 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center gap-2.5">
+                        {isUrlSource ? (
+                          <button onClick={() => { setPreviewUrl(null); setIngestionTab('url'); }}
+                            className="flex items-center gap-2 px-3.5 py-2 bg-white text-slate-800 rounded-xl text-xs font-semibold shadow-xl hover:bg-slate-50 transition cursor-pointer">
+                            <Link2 className="w-3.5 h-3.5 text-teal-600" /> Change URL
+                          </button>
+                        ) : (
+                          <button onClick={() => fileInputRef.current?.click()}
+                            className="flex items-center gap-2 px-3.5 py-2 bg-white text-slate-800 rounded-xl text-xs font-semibold shadow-xl hover:bg-slate-50 transition cursor-pointer">
+                            <UploadCloud className="w-3.5 h-3.5 text-blue-500" /> Change Photo
+                          </button>
+                        )}
+                        <button onClick={handleReset}
+                          className="flex items-center gap-2 px-3.5 py-2 bg-red-600 text-white rounded-xl text-xs font-semibold shadow-xl shadow-red-600/30 hover:bg-red-700 transition cursor-pointer">
+                          <Trash2 className="w-3.5 h-3.5" /> Clear
                         </button>
-                        <button onClick={() => setIsCameraOpen(true)}
-                          className="flex items-center gap-2 px-3.5 py-2 bg-blue-600 text-white rounded-xl text-sm font-semibold shadow-xl shadow-blue-600/30 hover:bg-blue-700 transition">
-                          <Camera className="w-4 h-4" /> Camera
-                        </button>
+                      </div>
+                    </div>
+                  ) : ingestionTab === 'url' ? (
+                    /* ── URL Input Pane ── */
+                    <div className="space-y-3.5 animate-fadeIn">
+                      <div className="space-y-1.5">
+                        <label className="block text-xs font-semibold text-slate-700">
+                          Public Image URL (HTTP / HTTPS)
+                        </label>
+                        <div className="flex gap-2">
+                          <div className="relative flex-1">
+                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                              <Link2 className="w-4 h-4" />
+                            </div>
+                            <input
+                              type="url"
+                              value={inputImageUrl}
+                              onChange={(e) => setInputImageUrl(e.target.value)}
+                              onKeyDown={(e) => { if (e.key === 'Enter') handleLoadImageUrl(); }}
+                              placeholder="https://example.com/rack_shelf.jpg"
+                              className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-8 py-2.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 font-mono transition"
+                            />
+                            {inputImageUrl && (
+                              <button
+                                type="button"
+                                onClick={() => setInputImageUrl('')}
+                                className="absolute inset-y-0 right-0 pr-2.5 flex items-center text-slate-400 hover:text-slate-600"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleLoadImageUrl()}
+                            disabled={isUrlLoading || !inputImageUrl.trim()}
+                            className="px-4 py-2.5 bg-teal-600 hover:bg-teal-700 disabled:opacity-50 text-white text-xs font-semibold rounded-xl shadow-sm transition flex items-center gap-1.5 shrink-0 cursor-pointer disabled:cursor-not-allowed"
+                          >
+                            {isUrlLoading ? (
+                              <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                            ) : (
+                              <CheckCircle2 className="w-3.5 h-3.5" />
+                            )}
+                            <span>Preview</span>
+                          </button>
+                        </div>
+                        <p className="text-[11px] text-slate-500 flex items-center gap-1 mt-1">
+                          <span>Target:</span>
+                          <code className="font-mono bg-slate-100 px-1 py-0.5 rounded text-teal-700 font-semibold">POST /uploads/url</code>
+                          <span>(JPEG, PNG, WebP up to 10MB)</span>
+                        </p>
+                      </div>
+
+                      {/* Quick Presets */}
+                      <div className="pt-2 border-t border-slate-100">
+                        <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider mb-2">
+                          Quick Presets for Live Testing:
+                        </p>
+                        <div className="space-y-1.5">
+                          {SAMPLE_URL_PRESETS.map((preset) => (
+                            <button
+                              key={preset.name}
+                              type="button"
+                              onClick={() => {
+                                setInputImageUrl(preset.url);
+                                setShopId(preset.shop_id);
+                                setMerchandiserId(preset.merchandiser_id);
+                                handleLoadImageUrl(preset.url);
+                              }}
+                              className="w-full flex items-center justify-between p-2 rounded-xl bg-slate-50 hover:bg-teal-50/60 border border-slate-200 hover:border-teal-200 transition group text-left cursor-pointer"
+                            >
+                              <div className="flex items-center gap-2 min-w-0">
+                                <div className="w-6 h-6 rounded-lg bg-teal-100 text-teal-700 flex items-center justify-center shrink-0">
+                                  <Globe className="w-3.5 h-3.5" />
+                                </div>
+                                <div className="min-w-0">
+                                  <p className="text-xs font-semibold text-slate-800 group-hover:text-teal-900 truncate">
+                                    {preset.name}
+                                  </p>
+                                  <p className="text-[10px] text-slate-400 font-mono truncate">
+                                    {preset.shop_id}
+                                  </p>
+                                </div>
+                              </div>
+                              <span className="text-[10px] font-semibold text-teal-600 group-hover:text-teal-700 shrink-0 ml-2">
+                                Load →
+                              </span>
+                            </button>
+                          ))}
+                        </div>
                       </div>
                     </div>
                   ) : ingestionTab === 'samples' ? (
