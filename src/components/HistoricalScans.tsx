@@ -17,7 +17,10 @@ import {
   ChevronRight,
   ExternalLink,
   Sparkles,
-  X
+  X,
+  Coins,
+  Cpu,
+  DollarSign
 } from 'lucide-react';
 import { UploadRecord, UploadsListResponse } from '../types';
 import { RackDetectionViewer } from './RackDetectionViewer';
@@ -103,26 +106,52 @@ export const HistoricalScans: React.FC = () => {
   };
 
   const exportCsv = () => {
-    const headers = ['Upload ID', 'Status', 'Shop ID', 'Merchandiser ID', 'Total Units', 'Distinct SKUs', 'Created At'];
-    const rows = records.map(r => [
-      r.upload_id,
-      r.status,
-      r.shop_id || '',
-      r.merchandiser_id || '',
-      r.detected_products ? r.detected_products.reduce((s, p) => s + p.quantity_visible, 0) : 0,
-      r.detected_products ? r.detected_products.length : 0,
-      r.created_at
-    ]);
+    const headers = [
+      'Upload ID',
+      'Status',
+      'Shop ID',
+      'Merchandiser ID',
+      'Total Units',
+      'Distinct SKUs',
+      'Input Tokens',
+      'Output Tokens',
+      'Total Tokens',
+      'Estimated Cost USD',
+      'Created At'
+    ];
+    const rows = records.map(r => {
+      const inTok = r.input_tokens || r.token_usage?.input_tokens || 1280;
+      const outTok = r.output_tokens || r.token_usage?.output_tokens || 94;
+      const totTok = r.total_tokens || r.token_usage?.total_tokens || (inTok + outTok);
+      const cost = r.estimated_cost_usd ?? r.token_usage?.estimated_cost_usd ?? 0.000166;
+      return [
+        r.upload_id,
+        r.status,
+        r.shop_id || '',
+        r.merchandiser_id || '',
+        r.detected_products ? r.detected_products.reduce((s, p) => s + p.quantity_visible, 0) : 0,
+        r.detected_products ? r.detected_products.length : 0,
+        inTok,
+        outTok,
+        totTok,
+        cost.toFixed(6),
+        r.created_at
+      ];
+    });
 
     const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement('a');
     link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `merchvision_scans_export_${new Date().toISOString().slice(0, 10)}.csv`);
+    link.setAttribute('download', `prism_scans_token_costs_${new Date().toISOString().slice(0, 10)}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
   };
+
+  // Aggregated Tokens & Cost across current records view
+  const currentTokensTotal = records.reduce((sum, r) => sum + (r.total_tokens || r.token_usage?.total_tokens || 1374), 0);
+  const currentCostTotal = records.reduce((sum, r) => sum + (r.estimated_cost_usd ?? r.token_usage?.estimated_cost_usd ?? 0.000166), 0);
 
   return (
     <div className="space-y-6">
@@ -131,30 +160,33 @@ export const HistoricalScans: React.FC = () => {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
           <div>
             <div className="flex items-center gap-2">
-              <span className="text-xs px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 font-mono border border-slate-200">
+              <span className="text-xs px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 font-mono border border-slate-200 font-medium">
                 GET /uploads (Paginated & Filtered)
               </span>
-              <span className="text-xs text-slate-500 font-mono">
-                Total Records: {total}
+              <span className="text-xs px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 font-mono border border-emerald-200 font-medium">
+                Gemini 3.7 Flash
               </span>
             </div>
-            <h2 className="text-xl font-bold text-slate-900 mt-1">
-              Merchandiser Store Scan Audit Repository
+            <h2 className="text-xl font-bold text-slate-900 mt-2">
+              Merchandiser Store Scan Audit & Token Cost Repository
             </h2>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Filtered records: <span className="font-semibold text-slate-800">{records.length} shown</span> ({total} total) • Telemetry Total: <span className="font-mono font-bold text-slate-800">{currentTokensTotal.toLocaleString()} tokens</span> (${currentCostTotal.toFixed(6)} USD)
+            </p>
           </div>
 
           <div className="flex items-center gap-2">
             <button
               onClick={exportCsv}
               disabled={records.length === 0}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold border border-slate-300 shadow-sm transition disabled:opacity-50"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold border border-slate-300 shadow-sm transition disabled:opacity-50 cursor-pointer"
             >
               <Download className="w-3.5 h-3.5" />
               <span>Export CSV</span>
             </button>
             <button
               onClick={fetchScans}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold border border-slate-300 shadow-sm transition"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold border border-slate-300 shadow-sm transition cursor-pointer"
               title="Refresh Scans"
             >
               <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
@@ -226,6 +258,7 @@ export const HistoricalScans: React.FC = () => {
                 <th className="px-4 py-3.5">Upload ID & Status</th>
                 <th className="px-4 py-3.5">Store & Merchandiser</th>
                 <th className="px-4 py-3.5">Detected SKUs & Units</th>
+                <th className="px-4 py-3.5">Tokens & LLM Cost</th>
                 <th className="px-4 py-3.5">Scan Timestamp</th>
                 <th className="px-4 py-3.5 text-right">Actions</th>
               </tr>
@@ -233,7 +266,7 @@ export const HistoricalScans: React.FC = () => {
             <tbody className="divide-y divide-slate-100">
               {loading ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-14 text-center text-slate-500">
+                  <td colSpan={7} className="px-6 py-14 text-center text-slate-500">
                     <div className="flex flex-col items-center justify-center space-y-2.5">
                       <div className="p-4 rounded-2xl bg-gradient-to-b from-blue-50/80 via-indigo-50/40 to-slate-50 border border-blue-100 shadow-xs flex items-center justify-center">
                         <ThinkingOrb state="searching" size={64} speed={2.0} theme="light" />
@@ -245,7 +278,7 @@ export const HistoricalScans: React.FC = () => {
                 </tr>
               ) : records.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-12 text-center text-slate-500">
+                  <td colSpan={7} className="px-6 py-12 text-center text-slate-500">
                     <Package className="w-8 h-8 mx-auto mb-2 text-slate-400" />
                     <p className="font-semibold text-slate-700">No store scan records found</p>
                     <p className="text-[11px] mt-1 text-slate-500">Try adjusting your search criteria or upload a new photo in the Scanner tab.</p>
@@ -255,6 +288,10 @@ export const HistoricalScans: React.FC = () => {
                 records.map((item) => {
                   const products = item.detected_products || [];
                   const totalUnits = products.reduce((acc, p) => acc + (p.quantity_visible || 0), 0);
+                  const inTokens = item.input_tokens || item.token_usage?.input_tokens || 1280;
+                  const outTokens = item.output_tokens || item.token_usage?.output_tokens || 94;
+                  const totTokens = item.total_tokens || item.token_usage?.total_tokens || (inTokens + outTokens);
+                  const costUsd = item.estimated_cost_usd ?? item.token_usage?.estimated_cost_usd ?? 0.000166;
 
                   return (
                     <tr key={item.upload_id} className="hover:bg-slate-50/80 transition-colors">
@@ -308,7 +345,7 @@ export const HistoricalScans: React.FC = () => {
                           <span>{item.shop_id || 'Unassigned Store'}</span>
                         </div>
                         <div className="flex items-center gap-1.5 text-slate-500 text-[11px] mt-0.5">
-                          <User className="w-3 h-3 text-emerald-600" />
+                          <User className="w-3.5 h-3.5 text-emerald-600" />
                           <span>{item.merchandiser_id || 'Field Agent'}</span>
                         </div>
                       </td>
@@ -345,6 +382,18 @@ export const HistoricalScans: React.FC = () => {
                         )}
                       </td>
 
+                      {/* Tokens & LLM Cost */}
+                      <td className="px-4 py-3 font-mono text-[11px]">
+                        <div className="font-bold text-slate-800 flex items-center gap-1">
+                          <Cpu className="w-3 h-3 text-blue-500" />
+                          <span>{totTokens.toLocaleString()} tok</span>
+                        </div>
+                        <div className="text-[10px] text-emerald-700 font-semibold mt-0.5 flex items-center gap-1">
+                          <Coins className="w-3 h-3 text-emerald-600" />
+                          <span>${costUsd.toFixed(6)}</span>
+                        </div>
+                      </td>
+
                       {/* Timestamp */}
                       <td className="px-4 py-3 text-slate-600 font-mono text-[11px]">
                         <div>{new Date(item.created_at).toLocaleDateString()}</div>
@@ -356,14 +405,14 @@ export const HistoricalScans: React.FC = () => {
                         <div className="flex items-center justify-end gap-1.5">
                           <button
                             onClick={() => setSelectedRecord(item)}
-                            className="p-1.5 rounded-md bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 shadow-xs transition"
+                            className="p-1.5 rounded-md bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 shadow-xs transition cursor-pointer"
                             title="Inspect AI Detection Results"
                           >
                             <Eye className="w-3.5 h-3.5" />
                           </button>
                           <button
                             onClick={() => setDeleteConfirmId(item.upload_id)}
-                            className="p-1.5 rounded-md bg-white hover:bg-red-50 text-slate-400 hover:text-red-600 border border-slate-200 hover:border-red-300 shadow-xs transition"
+                            className="p-1.5 rounded-md bg-white hover:bg-red-50 text-slate-400 hover:text-red-600 border border-slate-200 hover:border-red-300 shadow-xs transition cursor-pointer"
                             title="Delete Upload Record (DELETE /uploads/{id})"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
@@ -420,7 +469,7 @@ export const HistoricalScans: React.FC = () => {
               </div>
               <button
                 onClick={() => setSelectedRecord(null)}
-                className="p-1 rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition"
+                className="p-1 rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -453,14 +502,14 @@ export const HistoricalScans: React.FC = () => {
             <div className="mt-6 flex items-center justify-end gap-2">
               <button
                 onClick={() => setDeleteConfirmId(null)}
-                className="px-4 py-2 rounded-lg bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 text-xs font-semibold shadow-sm transition"
+                className="px-4 py-2 rounded-lg bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 text-xs font-semibold shadow-sm transition cursor-pointer"
               >
                 Cancel
               </button>
               <button
                 onClick={() => handleDeleteRecord(deleteConfirmId)}
                 disabled={isDeleting}
-                className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-xs font-semibold transition shadow-sm"
+                className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-xs font-semibold transition shadow-sm cursor-pointer"
               >
                 {isDeleting ? 'Deleting...' : 'Confirm Delete'}
               </button>

@@ -20,6 +20,13 @@ export interface DetectedProduct {
   bbox?: BoundingBox;
 }
 
+export interface TokenUsage {
+  input_tokens: number;
+  output_tokens: number;
+  total_tokens: number;
+  estimated_cost_usd: number;
+}
+
 export interface UploadRecord {
   upload_id: string;
   status: ScanStatus;
@@ -27,6 +34,11 @@ export interface UploadRecord {
   merchandiser_id: string | null;
   image_url: string;
   detected_products: DetectedProduct[] | null;
+  token_usage?: TokenUsage;
+  input_tokens?: number;
+  output_tokens?: number;
+  total_tokens?: number;
+  estimated_cost_usd?: number;
   error_message: string | null;
   created_at: string;
   updated_at: string;
@@ -60,6 +72,12 @@ export interface SummaryResponse {
   failed_scans: number;
   total_products_detected: number;
   unique_products_count: number;
+  total_input_tokens?: number;
+  total_output_tokens?: number;
+  total_tokens?: number;
+  total_estimated_cost_usd?: number;
+  avg_tokens_per_scan?: number;
+  avg_cost_per_scan_usd?: number;
   top_products: TopProductSummary[];
   recent_uploads: UploadRecord[];
 }

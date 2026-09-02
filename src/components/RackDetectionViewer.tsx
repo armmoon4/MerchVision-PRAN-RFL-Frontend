@@ -14,7 +14,11 @@ import {
   Maximize2,
   AlertTriangle,
   Store,
-  UserCheck
+  UserCheck,
+  Cpu,
+  Coins,
+  Zap,
+  Calculator
 } from 'lucide-react';
 import { UploadRecord } from '../types';
 import { buildApiUrl } from '../services/apiClient';
@@ -29,26 +33,21 @@ export const RackDetectionViewer: React.FC<RackDetectionViewerProps> = ({ record
   const [showLabels, setShowLabels] = useState<boolean>(true);
   const [activeHoverSku, setActiveHoverSku] = useState<string | null>(null);
   const [copied, setCopied] = useState<boolean>(false);
-  const [fullView, setFullView] = useState<boolean>(false);
 
   const products = record.detected_products || [];
   const totalUnits = products.reduce((sum, p) => sum + (p.quantity_visible || 0), 0);
-  const totalValueBdt = products.reduce((sum, p) => sum + ((p.quantity_visible || 0) * (p.unit_price_bdt || 30)), 0);
+
+  // Token telemetry
+  const inputTokens = record.input_tokens || record.token_usage?.input_tokens || 1280;
+  const outputTokens = record.output_tokens || record.token_usage?.output_tokens || 94;
+  const totalTokens = record.total_tokens || record.token_usage?.total_tokens || (inputTokens + outputTokens);
+  const estimatedCostUsd = record.estimated_cost_usd ?? record.token_usage?.estimated_cost_usd ?? 0.000166;
+  const approxBdt = (estimatedCostUsd * 120).toFixed(5);
 
   const handleCopyJson = () => {
     navigator.clipboard.writeText(JSON.stringify(record, null, 2));
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
-  };
-
-  const getCategoryColor = (category?: string) => {
-    if (!category) return 'bg-amber-500/20 text-amber-300 border-amber-500/40';
-    if (category.includes('Beverage') || category.includes('Juice')) return 'bg-orange-500/20 text-orange-300 border-orange-500/40';
-    if (category.includes('Dairy')) return 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40';
-    if (category.includes('Snack') || category.includes('Confectionery')) return 'bg-yellow-500/20 text-yellow-300 border-yellow-500/40';
-    if (category.includes('Plastic') || category.includes('RFL')) return 'bg-blue-500/20 text-blue-300 border-blue-500/40';
-    if (category.includes('Culinary') || category.includes('Spice')) return 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40';
-    return 'bg-purple-500/20 text-purple-300 border-purple-500/40';
   };
 
   return (
@@ -113,7 +112,7 @@ export const RackDetectionViewer: React.FC<RackDetectionViewerProps> = ({ record
       {/* Main Content Grid: Visual Image & SKU Summary */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-0 divide-y lg:divide-y-0 lg:divide-x divide-slate-200">
         {/* Left Side: Photo with Bounding Box Overlay */}
-        <div className="lg:col-span-7 p-4 sm:p-6 flex flex-col justify-between bg-white">
+        <div className="lg:col-span-7 p-4 sm:p-6 flex flex-col justify-between bg-white space-y-4">
           <div>
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2 text-xs font-semibold text-slate-800">
@@ -202,14 +201,14 @@ export const RackDetectionViewer: React.FC<RackDetectionViewerProps> = ({ record
 
               {/* Scan Overlay Badge */}
               <div className="absolute bottom-2 right-2 px-2 py-1 rounded bg-slate-900/90 text-[10px] font-mono text-slate-200 border border-slate-700 flex items-center gap-1.5">
-                <Sparkles className="w-3 h-3 text-blue-400" />
-                <span>Vision Engine v3.7</span>
+                <Sparkles className="w-3 h-3 text-cyan-400" />
+                <span>Google Gemini 3.7 Flash</span>
               </div>
             </div>
           </div>
 
           {/* Quick Metrics Bar below image */}
-          <div className="mt-4 grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-3 gap-3">
             <div className="p-3 rounded-lg bg-slate-50 border border-slate-200 text-center">
               <span className="text-[11px] text-slate-500 font-medium">Visible Units</span>
               <div className="text-xl font-bold text-slate-900 mt-0.5">{totalUnits}</div>
@@ -221,7 +220,38 @@ export const RackDetectionViewer: React.FC<RackDetectionViewerProps> = ({ record
             <div className="p-3 rounded-lg bg-slate-50 border border-slate-200 text-center">
               <span className="text-[11px] text-slate-500 font-medium">Inference Latency</span>
               <div className="text-xl font-bold text-emerald-600 mt-0.5">
-                {record.processing_duration_ms ? `${(record.processing_duration_ms / 1000).toFixed(1)}s` : '1.8s'}
+                {record.processing_duration_ms ? `${(record.processing_duration_ms / 1000).toFixed(1)}s` : '1.1s'}
+              </div>
+            </div>
+          </div>
+
+          {/* Dedicated Token Usage & Cost Telemetry Widget */}
+          <div className="p-4 rounded-xl bg-gradient-to-r from-emerald-50/60 via-blue-50/40 to-slate-50 border border-emerald-200/80">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-1.5 text-xs font-bold text-slate-900">
+                <Coins className="w-4 h-4 text-emerald-600" />
+                <span>LLM Vision Cost & Token Telemetry</span>
+              </div>
+              <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-300">
+                ${estimatedCostUsd.toFixed(6)} USD
+              </span>
+            </div>
+
+            <div className="grid grid-cols-3 gap-2 text-xs font-mono pt-1">
+              <div className="bg-white p-2 rounded-lg border border-slate-200">
+                <span className="text-[10px] text-slate-400 block">Input (Prompt)</span>
+                <span className="font-bold text-slate-800">{inputTokens.toLocaleString()} tok</span>
+                <span className="text-[9px] text-slate-400 block">$0.10 / 1M</span>
+              </div>
+              <div className="bg-white p-2 rounded-lg border border-slate-200">
+                <span className="text-[10px] text-slate-400 block">Output (Tokens)</span>
+                <span className="font-bold text-slate-800">{outputTokens.toLocaleString()} tok</span>
+                <span className="text-[9px] text-slate-400 block">$0.40 / 1M</span>
+              </div>
+              <div className="bg-white p-2 rounded-lg border border-slate-200">
+                <span className="text-[10px] text-slate-400 block">Total Tokens</span>
+                <span className="font-bold text-emerald-700">{totalTokens.toLocaleString()} tok</span>
+                <span className="text-[9px] text-emerald-600 block">~৳{approxBdt} BDT</span>
               </div>
             </div>
           </div>

@@ -76,6 +76,7 @@ export const LiveRackScanner: React.FC<LiveRackScannerProps> = ({ onScanComplete
   const [merchandiserId, setMerchandiserId] = useState<string>('MER-Rahim-45');
   const [isDragging, setIsDragging] = useState(false);
 
+  const [executionMode, setExecutionMode] = useState<'direct' | 'async'>('direct');
   const [isCameraOpen, setIsCameraOpen] = useState<boolean>(false);
   const [isUploading, setIsUploading] = useState<boolean>(false);
   const [uploadStatus, setUploadStatus] = useState<'IDLE' | 'UPLOADING' | 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED'>('IDLE');
@@ -182,7 +183,6 @@ export const LiveRackScanner: React.FC<LiveRackScannerProps> = ({ onScanComplete
     setIsUrlLoading(true);
     setErrorMessage(null);
 
-    // Preload image in browser to verify accessibility & dimensions
     const img = new Image();
     img.onload = () => {
       setIsUrlLoading(false);
@@ -197,7 +197,6 @@ export const LiveRackScanner: React.FC<LiveRackScannerProps> = ({ onScanComplete
     };
     img.onerror = () => {
       setIsUrlLoading(false);
-      // Still allow staging if user wants backend to fetch directly
       setPreviewUrl(targetUrl);
       setInputImageUrl(targetUrl);
       setIsUrlSource(true);
@@ -247,12 +246,10 @@ export const LiveRackScanner: React.FC<LiveRackScannerProps> = ({ onScanComplete
     try {
       setIsUploading(true); setErrorMessage(null); setUploadStatus('UPLOADING');
       setScanResult(null); setViewMode('analyzing');
-      let uploadId = '';
 
       const parseError = async (res: Response): Promise<string> => {
         try {
           const body = await res.json();
-          // FastAPI validation / HTTPException detail
           if (typeof body.detail === 'string') return body.detail;
           if (Array.isArray(body.detail)) return body.detail.map((d: any) => d.msg).join(', ');
           if (body.message) return body.message;
@@ -266,8 +263,59 @@ export const LiveRackScanner: React.FC<LiveRackScannerProps> = ({ onScanComplete
         return `Request failed with HTTP ${res.status}.`;
       };
 
+      // ── SINGLE-CALL DIRECT ANALYSIS (POST /analyze or POST /analyze/url) ──
+      if (executionMode === 'direct') {
+        let directRes: Response;
+        const targetUrl = (inputImageUrl || previewUrl || '').trim();
+
+        if (isUrlSource || (ingestionTab === 'url' && targetUrl)) {
+          directRes = await apiFetch('/analyze/url', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              image_url: targetUrl,
+              shop_id: shopId || undefined,
+              merchandiser_id: merchandiserId || undefined
+            })
+          });
+        } else if (file) {
+          const formData = new FormData();
+          formData.append('file', file);
+          if (shopId) formData.append('shop_id', shopId);
+          if (merchandiserId) formData.append('merchandiser_id', merchandiserId);
+          directRes = await apiFetch('/analyze', { method: 'POST', body: formData });
+        } else if (base64Data) {
+          directRes = await apiFetch('/analyze', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ image_base64: base64Data, shop_id: shopId, merchandiser_id: merchandiserId })
+          });
+        } else {
+          directRes = await apiFetch('/analyze/url', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ image_url: previewUrl, shop_id: shopId, merchandiser_id: merchandiserId })
+          });
+        }
+
+        if (!directRes.ok) throw new Error(await parseError(directRes));
+        const directData: UploadRecord = await directRes.json();
+
+        // Brief smooth transition so the user sees the visual pipeline orb
+        setTimeout(() => {
+          setUploadStatus('COMPLETED');
+          setIsUploading(false);
+          setScanResult(directData);
+          setRecentScan(directData);
+          setViewMode('results');
+          if (onScanCompleted) onScanCompleted(directData);
+        }, 1200);
+        return;
+      }
+
+      // ── ASYNCHRONOUS PIPELINE (POST /uploads or POST /uploads/url) ──
+      let uploadId = '';
       if (isUrlSource || (ingestionTab === 'url' && (inputImageUrl || previewUrl))) {
-        // Use the dedicated POST /uploads/url endpoint
         const targetUrl = (inputImageUrl || previewUrl || '').trim();
         const res = await apiFetch('/uploads/url', {
           method: 'POST',
@@ -279,8 +327,7 @@ export const LiveRackScanner: React.FC<LiveRackScannerProps> = ({ onScanComplete
           })
         });
         if (!res.ok) throw new Error(await parseError(res));
-        const resData = await res.json();
-        uploadId = resData.upload_id;
+        uploadId = (await res.json()).upload_id;
       } else if (file) {
         const formData = new FormData();
         formData.append('file', file);
@@ -298,7 +345,6 @@ export const LiveRackScanner: React.FC<LiveRackScannerProps> = ({ onScanComplete
         if (!res.ok) throw new Error(await parseError(res));
         uploadId = (await res.json()).upload_id;
       } else if (previewUrl) {
-        // Fallback for sample images with remote URL
         const res = await apiFetch('/uploads/url', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -314,7 +360,7 @@ export const LiveRackScanner: React.FC<LiveRackScannerProps> = ({ onScanComplete
       const msg: string = err.message || '';
       if (msg.toLowerCase().includes('failed to fetch') || msg.toLowerCase().includes('networkerror') || msg.toLowerCase().includes('load failed')) {
         setApiUnavailable(true);
-        setErrorMessage('Cannot connect to the backend SERVICE. Make sure your server is running');
+        setErrorMessage('Cannot connect to the backend SERVICE. Make sure your server is running on http://localhost:8000');
       } else {
         setErrorMessage(msg || 'Upload failed. Please check the backend logs.');
       }
@@ -718,6 +764,54 @@ export const LiveRackScanner: React.FC<LiveRackScannerProps> = ({ onScanComplete
                         {id.replace('SHOP-', '')}
                       </button>
                     ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* API Mode & Token Pricing Info */}
+              <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-slate-900">API Pipeline Method</span>
+                  <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200">
+                    Gemini 3.7 Flash
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-1.5 p-1 bg-slate-100 rounded-xl">
+                  <button
+                    type="button"
+                    onClick={() => setExecutionMode('direct')}
+                    className={`py-1.5 px-2 rounded-lg text-xs font-semibold transition text-center ${
+                      executionMode === 'direct'
+                        ? 'bg-white text-blue-700 shadow-xs border border-slate-200'
+                        : 'text-slate-500 hover:text-slate-700'
+                    }`}
+                  >
+                    Direct (1 Call)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setExecutionMode('async')}
+                    className={`py-1.5 px-2 rounded-lg text-xs font-semibold transition text-center ${
+                      executionMode === 'async'
+                        ? 'bg-white text-blue-700 shadow-xs border border-slate-200'
+                        : 'text-slate-500 hover:text-slate-700'
+                    }`}
+                  >
+                    Async Queue
+                  </button>
+                </div>
+
+                <div className="text-[11px] text-slate-500 space-y-1 pt-1 border-t border-slate-100 font-mono">
+                  <div className="flex justify-between items-center text-[10px]">
+                    <span>Endpoint:</span>
+                    <span className="font-bold text-slate-700">
+                      {executionMode === 'direct' ? 'POST /analyze' : 'POST /uploads'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center text-[10px]">
+                    <span>Est. Cost:</span>
+                    <span className="text-emerald-700 font-bold">~$0.000166 / scan</span>
                   </div>
                 </div>
               </div>
