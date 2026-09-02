@@ -740,7 +740,7 @@ export const LiveRackScanner: React.FC<LiveRackScannerProps> = ({ onScanComplete
                 ) : (
                   <>
                     <Sparkles className="w-4 h-4 text-white/90" />
-                    <span>Run AI Product Discovery</span>
+                    <span>Discover Products</span>
                     <ArrowRight className="w-4 h-4 text-white/90" />
                   </>
                 )}

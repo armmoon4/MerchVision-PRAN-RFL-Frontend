@@ -3,14 +3,12 @@ import { Header } from './components/Header';
 import { LiveRackScanner } from './components/LiveRackScanner';
 import { HistoricalScans } from './components/HistoricalScans';
 import { AnalyticsDashboard } from './components/AnalyticsDashboard';
-import { ApiExplorer } from './components/ApiExplorer';
-import { PranCatalogViewer } from './components/PranCatalogViewer';
 import { UploadRecord } from './types';
 import { ShieldCheck, Cpu, Code2, Heart } from 'lucide-react';
 import { apiFetch } from './services/apiClient';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<'scanner' | 'history' | 'analytics' | 'api' | 'catalog'>('scanner');
+  const [activeTab, setActiveTab] = useState<'scanner' | 'history' | 'analytics'>('scanner');
   const [serverHealth, setServerHealth] = useState<'ok' | 'checking' | 'error'>('checking');
 
   // Check GET /health endpoint using configured api base
@@ -57,12 +55,6 @@ export default function App() {
         )}
         {activeTab === 'analytics' && (
           <AnalyticsDashboard />
-        )}
-        {activeTab === 'api' && (
-          <ApiExplorer />
-        )}
-        {activeTab === 'catalog' && (
-          <PranCatalogViewer />
         )}
       </main>
 

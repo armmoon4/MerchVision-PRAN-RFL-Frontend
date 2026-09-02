@@ -3,8 +3,6 @@ import {
   Scan, 
   Layers, 
   BarChart3, 
-  Code2, 
-  PackageCheck, 
   Activity, 
   CheckCircle2, 
   AlertCircle,
@@ -22,14 +20,14 @@ import {
 import { getApiBaseUrl, setApiBaseUrl } from '../services/apiClient';
 
 interface HeaderProps {
-  activeTab: 'scanner' | 'history' | 'analytics' | 'api' | 'catalog';
-  onTabChange: (tab: 'scanner' | 'history' | 'analytics' | 'api' | 'catalog') => void;
+  activeTab: 'scanner' | 'history' | 'analytics';
+  onTabChange: (tab: 'scanner' | 'history' | 'analytics') => void;
   serverHealth: 'ok' | 'checking' | 'error';
   onHealthCheckTrigger?: () => void;
 }
 
 interface NavItem {
-  id: 'scanner' | 'history' | 'analytics' | 'api' | 'catalog';
+  id: 'scanner' | 'history' | 'analytics';
   label: string;
   icon: React.ComponentType<{ className?: string }>;
   badge?: string;
@@ -108,14 +106,12 @@ export const Header: React.FC<HeaderProps> = ({
   };
 
   const navItems: NavItem[] = [
-    { id: 'scanner', label: 'Scanner', icon: Scan, badge: 'Live AI', badgeColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' },
+    { id: 'scanner', label: 'Scanner', icon: Scan },
     { id: 'history', label: 'Scan History', icon: Layers },
-    { id: 'analytics', label: 'Analytics', icon: BarChart3 },
-    { id: 'api', label: 'API Docs', icon: Code2, badge: 'REST', badgeColor: 'bg-blue-500/20 text-blue-300 border-blue-500/30' },
-    { id: 'catalog', label: 'Products', icon: PackageCheck }
+    { id: 'analytics', label: 'Analytics', icon: BarChart3 }
   ];
 
-  const handleSelectTab = (tab: 'scanner' | 'history' | 'analytics' | 'api' | 'catalog') => {
+  const handleSelectTab = (tab: 'scanner' | 'history' | 'analytics') => {
     onTabChange(tab);
     setMobileMenuOpen(false);
   };
