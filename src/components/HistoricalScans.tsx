@@ -1,19 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Search, 
-  Filter, 
-  Trash2, 
-  Eye, 
-  Download, 
-  RefreshCw, 
-  CheckCircle2, 
-  Clock, 
-  AlertTriangle, 
-  Store, 
-  User, 
-  Tag, 
-  Package, 
-  ChevronLeft, 
+import {
+  Search,
+  Filter,
+  Trash2,
+  Eye,
+  Download,
+  RefreshCw,
+  CheckCircle2,
+  Clock,
+  AlertTriangle,
+  Store,
+  User,
+  Tag,
+  Package,
+  ChevronLeft,
   ChevronRight,
   ExternalLink,
   Sparkles,
@@ -168,7 +168,7 @@ export const HistoricalScans: React.FC = () => {
               </span>
             </div>
             <h2 className="text-xl font-bold text-slate-900 mt-2">
-              Merchandiser Store Scan Audit & Token Cost Repository
+              Store Scan Audit & Token Cost Repository
             </h2>
             <p className="text-xs text-slate-500 mt-0.5">
               Filtered records: <span className="font-semibold text-slate-800">{records.length} shown</span> ({total} total) • Telemetry Total: <span className="font-mono font-bold text-slate-800">{currentTokensTotal.toLocaleString()} tokens</span> (${currentCostTotal.toFixed(6)} USD)
@@ -316,15 +316,14 @@ export const HistoricalScans: React.FC = () => {
                         </div>
                         <div className="mt-1">
                           <span
-                            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold font-mono ${
-                              item.status === 'COMPLETED'
+                            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold font-mono ${item.status === 'COMPLETED'
                                 ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
                                 : item.status === 'PROCESSING'
-                                ? 'bg-blue-100 text-blue-800 border border-blue-300 animate-pulse'
-                                : item.status === 'FAILED'
-                                ? 'bg-red-100 text-red-800 border border-red-300'
-                                : 'bg-amber-100 text-amber-800 border border-amber-300'
-                            }`}
+                                  ? 'bg-blue-100 text-blue-800 border border-blue-300 animate-pulse'
+                                  : item.status === 'FAILED'
+                                    ? 'bg-red-100 text-red-800 border border-red-300'
+                                    : 'bg-amber-100 text-amber-800 border border-amber-300'
+                              }`}
                           >
                             {item.status === 'COMPLETED' ? (
                               <CheckCircle2 className="w-2.5 h-2.5" />
