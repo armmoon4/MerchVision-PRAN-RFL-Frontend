@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  BarChart3, 
-  TrendingUp, 
-  Package, 
-  CheckCircle2, 
-  AlertCircle, 
-  Store, 
-  User, 
-  Layers, 
-  PieChart, 
+import {
+  BarChart3,
+  TrendingUp,
+  Package,
+  CheckCircle2,
+  AlertCircle,
+  Store,
+  User,
+  Layers,
+  PieChart,
   Activity,
   RefreshCw,
   Sparkles,
@@ -87,7 +87,7 @@ export const AnalyticsDashboard: React.FC = () => {
             </span>
           </div>
           <h2 className="text-xl font-bold text-slate-900 mt-2">
-            Rack Recognition & Token Cost Analytics
+            Recognition & Token Cost Analytics
           </h2>
           <p className="text-xs text-slate-500 mt-1">
             Aggregated shelf metrics, SKU detections, and exact LLM token cost telemetry powered by Google Gemini 3.7 Flash vision models.
@@ -398,11 +398,10 @@ export const AnalyticsDashboard: React.FC = () => {
                           <div className="font-bold text-slate-700">{itemTokens} tok</div>
                           <div className="text-[10px] text-emerald-600">${itemCost.toFixed(6)}</div>
                         </div>
-                        <span className={`px-2 py-0.5 rounded font-semibold text-[10px] ${
-                          upload.status === 'COMPLETED' ? 'bg-emerald-100 text-emerald-800' :
+                        <span className={`px-2 py-0.5 rounded font-semibold text-[10px] ${upload.status === 'COMPLETED' ? 'bg-emerald-100 text-emerald-800' :
                           upload.status === 'PROCESSING' ? 'bg-blue-100 text-blue-800' :
-                          upload.status === 'FAILED' ? 'bg-rose-100 text-rose-800' : 'bg-slate-100 text-slate-700'
-                        }`}>
+                            upload.status === 'FAILED' ? 'bg-rose-100 text-rose-800' : 'bg-slate-100 text-slate-700'
+                          }`}>
                           {upload.status}
                         </span>
                       </div>
