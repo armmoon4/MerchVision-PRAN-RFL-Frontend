@@ -2,23 +2,15 @@ import React, { useState } from 'react';
 import { 
   CheckCircle, 
   Package, 
-  Layers, 
-  Eye, 
-  EyeOff, 
   Tag, 
-  DollarSign, 
   Clock, 
   Sparkles, 
   Copy, 
   Check, 
-  Maximize2,
   AlertTriangle,
   Store,
   UserCheck,
-  Cpu,
-  Coins,
-  Zap,
-  Calculator
+  Coins
 } from 'lucide-react';
 import { UploadRecord } from '../types';
 import { buildApiUrl } from '../services/apiClient';
@@ -29,9 +21,6 @@ interface RackDetectionViewerProps {
 }
 
 export const RackDetectionViewer: React.FC<RackDetectionViewerProps> = ({ record }) => {
-  const [showBoxes, setShowBoxes] = useState<boolean>(true);
-  const [showLabels, setShowLabels] = useState<boolean>(true);
-  const [activeHoverSku, setActiveHoverSku] = useState<string | null>(null);
   const [copied, setCopied] = useState<boolean>(false);
 
   const products = record.detected_products || [];
@@ -117,90 +106,29 @@ export const RackDetectionViewer: React.FC<RackDetectionViewerProps> = ({ record
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2 text-xs font-semibold text-slate-800">
                 <Package className="w-4 h-4 text-blue-600" />
-                <span>Store Image & Visual AI Bounding Overlay</span>
+                <span>Captured Shelf Photo</span>
               </div>
-              <div className="flex items-center gap-2">
-                <button
-                  id="toggle-boxes-btn"
-                  onClick={() => setShowBoxes(!showBoxes)}
-                  className={`px-2.5 py-1 rounded text-xs font-medium flex items-center gap-1 border transition ${
-                    showBoxes
-                      ? 'bg-blue-50 text-blue-700 border-blue-300'
-                      : 'bg-white text-slate-600 border-slate-300'
-                  }`}
-                >
-                  {showBoxes ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
-                  <span>SKU Boxes</span>
-                </button>
-                <button
-                  id="toggle-labels-btn"
-                  onClick={() => setShowLabels(!showLabels)}
-                  className={`px-2.5 py-1 rounded text-xs font-medium flex items-center gap-1 border transition ${
-                    showLabels
-                      ? 'bg-blue-50 text-blue-700 border-blue-300'
-                      : 'bg-white text-slate-600 border-slate-300'
-                  }`}
-                >
-                  <Tag className="w-3 h-3" />
-                  <span>Labels</span>
-                </button>
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium bg-slate-100 text-slate-600 border border-slate-200">
+                <Sparkles className="w-3 h-3 text-indigo-500" />
+                <span>AI Vision Analyzed</span>
               </div>
             </div>
 
             {/* Image Canvas Container */}
-            <div className="relative w-full aspect-[4/3] rounded-lg overflow-hidden bg-slate-900 border border-slate-300 group shadow-inner flex items-center justify-center">
+            <div className="relative w-full aspect-[4/3] rounded-lg overflow-hidden bg-slate-950 border border-slate-200 group shadow-inner flex items-center justify-center">
               {record.image_url ? (
                 <img
                   src={buildApiUrl(record.image_url)}
                   alt="Store Scan"
-                  className="w-full h-full object-cover object-center transition duration-300"
+                  className="w-full h-full object-contain sm:object-cover object-center transition duration-300"
                   crossOrigin="anonymous"
                 />
               ) : (
                 <div className="text-slate-400 text-xs">No image preview available</div>
               )}
 
-              {/* Bounding Box Overlays */}
-              {showBoxes && products.map((item, idx) => {
-                const isHovered = activeHoverSku === item.product_name;
-                const bbox = item.bbox || {
-                  x: 10 + (idx * 22) % 70,
-                  y: 20 + (Math.floor(idx / 3) * 30) % 60,
-                  width: 20,
-                  height: 35
-                };
-
-                return (
-                  <div
-                    key={`${item.product_name}-${idx}`}
-                    onMouseEnter={() => setActiveHoverSku(item.product_name)}
-                    onMouseLeave={() => setActiveHoverSku(null)}
-                    style={{
-                      left: `${bbox.x}%`,
-                      top: `${bbox.y}%`,
-                      width: `${bbox.width}%`,
-                      height: `${bbox.height}%`
-                    }}
-                    className={`absolute rounded border-2 transition-all duration-200 cursor-pointer ${
-                      isHovered
-                        ? 'border-blue-400 bg-blue-500/30 shadow-lg scale-105 z-20'
-                        : 'border-emerald-400 bg-emerald-500/15 hover:border-blue-400 hover:bg-blue-500/20 z-10'
-                    }`}
-                  >
-                    {showLabels && (
-                      <div className="absolute -top-6 left-0 whitespace-nowrap px-1.5 py-0.5 rounded bg-slate-900 text-white font-mono text-[9px] font-bold border border-emerald-400 shadow flex items-center gap-1 pointer-events-none">
-                        <span>{item.product_name}</span>
-                        <span className="px-1 rounded bg-blue-600 text-[8px] text-white">
-                          ×{item.quantity_visible}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-
               {/* Scan Overlay Badge */}
-              <div className="absolute bottom-2 right-2 px-2 py-1 rounded bg-slate-900/90 text-[10px] font-mono text-slate-200 border border-slate-700 flex items-center gap-1.5">
+              <div className="absolute bottom-2 right-2 px-2.5 py-1 rounded-md bg-slate-900/85 backdrop-blur-xs text-[10px] font-mono text-slate-200 border border-slate-700/80 flex items-center gap-1.5 shadow-sm">
                 <Sparkles className="w-3 h-3 text-cyan-400" />
                 <span>Google Gemini 3.7 Flash</span>
               </div>
@@ -274,17 +202,10 @@ export const RackDetectionViewer: React.FC<RackDetectionViewerProps> = ({ record
             {products.length > 0 ? (
               <div className="space-y-2 max-h-[380px] overflow-y-auto pr-1">
                 {products.map((item, idx) => {
-                  const isHovered = activeHoverSku === item.product_name;
                   return (
                     <div
                       key={idx}
-                      onMouseEnter={() => setActiveHoverSku(item.product_name)}
-                      onMouseLeave={() => setActiveHoverSku(null)}
-                      className={`p-3 rounded-lg border transition-all duration-150 cursor-pointer ${
-                        isHovered
-                          ? 'bg-blue-50/70 border-blue-400 shadow-sm'
-                          : 'bg-slate-50/60 border-slate-200 hover:border-slate-300'
-                      }`}
+                      className="p-3 rounded-lg border bg-slate-50/70 border-slate-200 hover:border-blue-300 hover:bg-blue-50/30 transition-all duration-150"
                     >
                       <div className="flex items-start justify-between gap-2">
                         <div>

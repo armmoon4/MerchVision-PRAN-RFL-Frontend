@@ -58,7 +58,7 @@ const PIPELINE_STEPS: StepItem[] = [
     state: 'solving',
     label: 'Audit',
     title: 'Synthesizing Facing Counts',
-    detail: 'Calculating bounding coordinates and visible inventory quantities.',
+    detail: 'Auditing SKU facings and calculating visible inventory quantities.',
     icon: <Zap className="w-4 h-4" />,
   },
 ];

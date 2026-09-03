@@ -141,9 +141,9 @@ async function processRackRecognitionJob(uploadId: string, _imageBuffer: Buffer,
 
     current.status = 'COMPLETED';
     current.detected_products = [
-      { product_name: 'PRAN Mango Juice 250ml', quantity_visible: 6, confidence: 0.98, category: 'Beverage & Juices', bbox: { x: 15, y: 20, width: 25, height: 40 } },
-      { product_name: 'PRAN Frooto 250ml', quantity_visible: 4, confidence: 0.95, category: 'Beverage & Juices', bbox: { x: 45, y: 20, width: 22, height: 40 } },
-      { product_name: 'RFL Water Bottle 1L', quantity_visible: 2, confidence: 0.92, category: 'RFL Plastics & Houseware', bbox: { x: 72, y: 15, width: 18, height: 50 } }
+      { product_name: 'PRAN Mango Juice 250ml', quantity_visible: 6, confidence: 0.98, category: 'Beverage & Juices' },
+      { product_name: 'PRAN Frooto 250ml', quantity_visible: 4, confidence: 0.95, category: 'Beverage & Juices' },
+      { product_name: 'RFL Water Bottle 1L', quantity_visible: 2, confidence: 0.92, category: 'RFL Plastics & Houseware' }
     ];
     current.token_usage = tokenMetrics.token_usage;
     current.input_tokens = tokenMetrics.input_tokens;
@@ -209,9 +209,9 @@ app.post(['/analyze', '/uploads/analyze'], uploadMiddleware.single('file'), asyn
     const tokenMetrics = calculateTokenMetrics(1280, 94);
 
     const detectedProducts: DetectedProductItem[] = [
-      { product_name: 'PRAN Mango Juice 250ml', quantity_visible: 6, confidence: 0.98, category: 'Beverage & Juices', bbox: { x: 15, y: 20, width: 25, height: 40 } },
-      { product_name: 'PRAN Lassi 200ml', quantity_visible: 4, confidence: 0.95, category: 'Beverage & Juices', bbox: { x: 45, y: 20, width: 22, height: 40 } },
-      { product_name: 'RFL Water Bottle 1L', quantity_visible: 2, confidence: 0.92, category: 'RFL Plastics & Houseware', bbox: { x: 72, y: 15, width: 18, height: 50 } }
+      { product_name: 'PRAN Mango Juice 250ml', quantity_visible: 6, confidence: 0.98, category: 'Beverage & Juices' },
+      { product_name: 'PRAN Lassi 200ml', quantity_visible: 4, confidence: 0.95, category: 'Beverage & Juices' },
+      { product_name: 'RFL Water Bottle 1L', quantity_visible: 2, confidence: 0.92, category: 'RFL Plastics & Houseware' }
     ];
 
     const record: UploadRecordItem = {
@@ -283,9 +283,9 @@ app.post('/analyze/url', async (req: Request, res: Response): Promise<void> => {
     const tokenMetrics = calculateTokenMetrics(1280, 94);
 
     const detectedProducts: DetectedProductItem[] = [
-      { product_name: 'PRAN Mango Juice 250ml', quantity_visible: 6, confidence: 0.98, category: 'Beverage & Juices', bbox: { x: 15, y: 20, width: 25, height: 40 } },
-      { product_name: 'PRAN Lassi 200ml', quantity_visible: 4, confidence: 0.95, category: 'Beverage & Juices', bbox: { x: 45, y: 20, width: 22, height: 40 } },
-      { product_name: 'RFL Water Bottle 1L', quantity_visible: 2, confidence: 0.92, category: 'RFL Plastics & Houseware', bbox: { x: 72, y: 15, width: 18, height: 50 } }
+      { product_name: 'PRAN Mango Juice 250ml', quantity_visible: 6, confidence: 0.98, category: 'Beverage & Juices' },
+      { product_name: 'PRAN Lassi 200ml', quantity_visible: 4, confidence: 0.95, category: 'Beverage & Juices' },
+      { product_name: 'RFL Water Bottle 1L', quantity_visible: 2, confidence: 0.92, category: 'RFL Plastics & Houseware' }
     ];
 
     const record: UploadRecordItem = {
